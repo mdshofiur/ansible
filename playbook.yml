@@ -1,0 +1,15 @@
+---
+- name: Example Playbook
+  hosts: web_servers
+  tasks:
+    - name: Ensure Nginx is installed
+      apt:
+        name: nginx
+        state: present
+      become: yes
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+      become: yes

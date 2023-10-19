@@ -1,0 +1,7 @@
+{
+   "ansible.python.interpreterPath": "python",
+   "ansible.ansible.path": "ansible",
+   "ansible.autoCompletion.useFullyQualifiedCollectionNames": true,
+   "ansible.ansibleLint.path": "ansible-lint",
+   "ansible.ansibleLint.enable": true
+}

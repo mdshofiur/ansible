@@ -1,18 +1,18 @@
 ---
-- name:  Example Playbook
+- name: Example Playbook
   hosts: web_servers
-  become: yes
+  # become: yes
   tasks:
     - name: Update package cache
       apt:
         update_cache: yes
-        
+
     - name: Nginx Install
-      apt: 
+      apt:
         name: nginx
         state: present
         update_cache: yes
-        
+
     - name: Check if Nginx is running
       service:
         name: nginx
@@ -26,7 +26,7 @@
         update_cache: yes
 
     - name: Docker Docker Compose Install
-      apt: 
+      apt:
         name: docker-compose
         state: present
         update_cache: yes
@@ -34,30 +34,29 @@
     - name: Check Docker Compose is Installed
       command: docker-compose --version
       register: docker_compose_version
-      ignore_errors: yes
+      # ignore_errors: yes
 
     - name: Print Docker Compose version if installed
       debug:
         msg: "Docker Compose version is {{ docker_compose_version.stdout_lines[0] }}"
       when: docker_compose_version.rc == 0
-    
+
     - name: Check if Docker is running
       service:
         name: docker
         state: started
         enabled: yes
 
-    - name: Install unzip package 
+    - name: Install unzip package
       ansible.builtin.package:
         name: unzip
         state: present
-    
 
     - name: Remove unzip package
       ansible.builtin.package:
         name: unzip
         state: absent
-     
+
     #  - name: Uninstall unzip package
     #   ansible.builtin.command:
     #     cmd: sudo apt-get remove unzip

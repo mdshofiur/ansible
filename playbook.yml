@@ -1,7 +1,7 @@
 ---
 - name: Example Playbook
   hosts: web_servers
-  # become: yes
+  become: yes
   tasks:
     - name: Update package cache
       apt:

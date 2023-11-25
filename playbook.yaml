@@ -1,58 +1,30 @@
 ---
 - name: Example Playbook
-  hosts: web_servers
-  become: true
+  hosts: 
+    - web_servers
+  become: yes
   tasks:
+
     - name: Update package cache
       apt:
         update_cache: yes
+        cache_valid_time: 3600
 
-    - name: Nginx Install
+    - name: Gather the rpm package facts
+      package_facts:
+        manager: auto
+
+    - name: Install required packages
       apt:
-        name: nginx
+        name: "{{ item }}"
         state: present
-        update_cache: yes
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gpg
+        - nginx
+        - docker.io
+        - docker-compose
+      when: "item not in ansible_facts.packages"
 
-    - name: Check if Nginx is running
-      service:
-        name: nginx
-        state: started
-        enabled: yes
-
-    - name: Docker Install
-      apt:
-        name: docker.io
-        state: present
-        update_cache: yes
-
-    - name: Docker Docker Compose Install
-      apt:
-        name: docker-compose
-        state: present
-        update_cache: yes
-
-    - name: Check Docker Compose is Installed
-      command: docker-compose --version
-      register: docker_compose_version
-      # ignore_errors: yes
-
-    - name: Print Docker Compose version if installed
-      debug:
-        msg: "Docker Compose version is {{ docker_compose_version.stdout_lines[0] }}"
-      when: docker_compose_version.rc == 0
-
-    - name: Check if Docker is running
-      service:
-        name: docker
-        state: started
-        enabled: yes
-
-    - name: Install unzip package
-      ansible.builtin.package:
-        name: unzip
-        state: present
-
-    - name: Remove unzip package
-      ansible.builtin.package:
-        name: unzip
-        state: absent

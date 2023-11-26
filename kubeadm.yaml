@@ -1,0 +1,207 @@
+---
+- name: Example Playbook
+  hosts:
+    - web_servers
+  become: yes
+  tasks:
+
+    # - name: Ensure that the package cache is updated
+    #   apt:
+    #     update_cache: yes
+      
+    - name: Gather the rpm package facts
+      package_facts:
+        manager: auto
+
+
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gpg
+        - gnupg
+      when: "item not in ansible_facts.packages"
+
+
+    - name: Check if GPG key file already exists
+      stat:
+        path: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+      register: gpg_key_stat
+
+
+    - name: Download Public Signing Key 
+      get_url:
+        url: "https://pkgs.k8s.io/core:/stable:/v1.27/deb/Release.key"
+        dest: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+        mode: "0644"
+      when: 
+        - "ansible_facts.packages['curl'] is defined"
+        - "not gpg_key_stat.stat.exists"
+
+
+    - name: Import GPG key
+      shell:
+        cmd: "gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+        creates: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+      when: "ansible_facts.packages['gpg'] is defined and not gpg_key_stat.stat.exists"
+
+
+    # - name: Update package cache
+    #   apt:
+    #     update_cache: yes
+
+    - name: Check if Kubernetes repository line exists
+      stat:
+        path: "/etc/apt/sources.list.d/kubernetes.list"
+      register: kubernetes_repo_line
+
+
+    - name: Debug information about the directory
+      debug:
+        var: kubernetes_repo_line
+
+
+    - name: Add Kubernetes repository line to sources.list
+      lineinfile:
+        path: "/etc/apt/sources.list.d/kubernetes.list"
+        line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.27/deb/ /"
+        create: yes
+      when: "ansible_facts.packages['apt-transport-https'] is defined and not kubernetes_repo_line.stat.exists"
+
+
+    - name: Install kubectl, kubectl, and kubeadm
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - kubectl
+        - kubeadm
+        - kubelet
+      when: "ansible_facts.packages['kubectl','kubeadm','kubelet'] is defined"
+
+    - name: Hold kubelet, kubeadm, and kubectl packages version
+      command:
+        cmd: "sudo apt-mark hold kubelet kubeadm kubectl"
+      
+
+    # - name: Update package cache
+    #   apt:
+    #     update_cache: yes
+
+
+    - name: Disable swap
+      command:
+        cmd: "swapoff -a"
+      when: ansible_swaptotal_mb > 0  
+
+    - name: Comment out swap entry in /etc/fstab
+      lineinfile:
+        path: "/etc/fstab"
+        regexp: "^/swapfile"
+        line: "# /swapfile"
+        state: present
+      when: ansible_swaptotal_mb > 0 
+    
+    
+    - name: Check if k8s.conf file with kernel modules is created
+      ansible.builtin.stat: 
+        path: "/etc/modules-load.d/k8s.conf"
+      register: kernel_modules
+
+
+    - name: Create k8s.conf file with required kernel modules
+      ansible.builtin.blockinfile:
+        path: "/etc/modules-load.d/k8s.conf"
+        block: | 
+          overlay
+          br_netfilter
+      when: "not kernel_modules.stat.exists"
+
+    - name: Load kernel modules
+      ansible.builtin.modprobe:
+        name: "{{ item }}"
+      loop:
+        - overlay
+        - br_netfilter
+      when: "not kernel_modules.stat.exists"
+
+    
+    - name: Check if k8s.conf file with sysctl settings
+      ansible.builtin.stat: 
+        path: "/etc/sysctl.d/k8s.conf"
+      register: sysctl_settings  
+
+    
+    - name: Create k8s.conf file with sysctl settings
+      ansible.builtin.blockinfile:
+         path: "/etc/sysctl.d/k8s.conf"
+         block: |
+            net.bridge.bridge-nf-call-iptables  = 1
+            net.bridge.bridge-nf-call-ip6tables = 1
+            net.ipv4.ip_forward                 = 1
+      when: "not sysctl_settings.stat.exists"
+
+
+    - name: Check if sysctl settings have been applied
+      ansible.builtin.stat:
+        path: "/etc/ansible/sysctl_applied.flag"
+      register: sysctl_check
+      
+
+    - name: Apply sysctl settings
+      ansible.builtin.command:
+        cmd: "sudo sysctl --system"
+      when: "not sysctl_check.stat.exists"
+
+
+    # - name: Enable and start kubelet service
+    #   service:
+    #     name: kubelet
+    #     enabled: yes
+    #     state: started
+
+    # - name: Initialize the cluster
+    #   shell:
+    #     cmd: "kubeadm init --pod-network-cidr=10.10.20.10"
+    #     creates: "/etc/kubernetes/admin.conf"
+        
+    # - name: Copy kubeconfig to user's home directory
+    #   copy:
+    #     src: "/etc/kubernetes/admin.conf"
+    #     dest: "/home/{{ ansible_user }}/.kube/config"
+    #     owner: "{{ ansible_user }}"
+    #     group: "{{ ansible_user }}"
+    #     mode: "0644"
+
+    # - name: Install Calico network plugin
+    #   shell:
+    #     cmd: "kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml"
+    #     creates: "/etc/kubernetes/manifests/calico.yaml"
+
+    # - name: Generate join command
+    #   shell:
+    #     cmd: "kubeadm token create --print-join-command"
+    #   register: join_command
+
+    # - name: Copy join command to user's home directory
+    #   copy:
+    #     content: "{{ join_command.stdout_lines[0] }}"
+    #     dest: "/home/{{ ansible_user }}/join-command.sh"
+    #     owner: "{{ ansible_user }}"
+    #     group: "{{ ansible_user }}"
+    #     mode: "0755"
+
+    # - name: Copy join command to user's home directory
+    #   copy:
+    #     content: "{{ join_command.stdout_lines[0] }}"
+    #     dest: "/home/{{ ansible_user }}/join-command.sh"
+    #     owner: "{{ ansible_user }}"
+    #     group: "{{ ansible_user }}"
+    #     mode: "0755"
+
+
+    

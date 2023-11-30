@@ -31,8 +31,8 @@
         - kubelet
         - kubeadm
         - kubectl
-      when: not dpkg_check.stdout_lines | select("match", "^kubelet[[:space:]]+hold") | list
-      register: dpkg_check
+      # when: not dpkg_check.stdout_lines | select("match", "^kubelet[[:space:]]+hold") | list
+      # register: dpkg_check
 
     - name: Show the result of dpkg check
       debug:

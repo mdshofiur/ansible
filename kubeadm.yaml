@@ -104,6 +104,8 @@
         path: "/etc/sysctl.conf"
       register: sysctl_check
 
+
+
     - name: Debug information about the directory
       debug:
         var: sysctl_check
@@ -112,6 +114,10 @@
       command:
         cmd: "sudo sysctl --system"
       when: "not sysctl_check.stat.exists"
+
+
+
+
 
     # - name: Enable and start kubelet service
     #   service:

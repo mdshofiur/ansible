@@ -99,21 +99,25 @@
           net.ipv4.ip_forward                 = 1
       when: "not sysctl_settings.stat.exists"
 
-    - name: Check if sysctl settings have been applied
-      stat:
-        path: "/etc/sysctl.conf"
-      register: sysctl_check
 
 
 
-    - name: Debug information about the directory
-      debug:
-        var: sysctl_check
 
-    - name: Apply sysctl settings
-      command:
-        cmd: "sudo sysctl --system"
-      when: "not sysctl_check.stat.exists"
+
+    # - name: Check if sysctl settings have been applied
+    #   stat:
+    #     path: "/etc/sysctl.conf"
+    #   register: sysctl_check
+
+
+    # - name: Debug information about the directory
+    #   debug:
+    #     var: sysctl_check
+
+    # - name: Apply sysctl settings
+    #   command:
+    #     cmd: "sudo sysctl --system"
+    #   when: "not sysctl_check.stat.exists"
 
 
 

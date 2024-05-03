@@ -124,11 +124,11 @@
 
 
 
-    # - name: Enable and start kubelet service
-    #   service:
-    #     name: kubelet
-    #     enabled: yes
-    #     state: started
+    - name: Enable and start kubelet service
+      service:
+        name: kubelet
+        enabled: yes
+        state: started
 
     # - name: Initialize the cluster
     #   shell:
